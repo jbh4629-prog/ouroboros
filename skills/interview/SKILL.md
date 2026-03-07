@@ -44,10 +44,14 @@ Compare the result with the current version in `.claude-plugin/plugin.json`.
     }]
   }
   ```
-  - If "Update now": run both commands via Bash:
-    1. `claude plugin update ouroboros` (update plugin/skills)
-    2. `uv tool upgrade ouroboros-ai` (update MCP server)
-    Then tell the user: "Updated! Restart Claude Code to apply, then run `ooo interview` again."
+  - If "Update now":
+    1. Run `claude plugin update ouroboros` via Bash (update plugin/skills)
+    2. Detect the user's Python package manager and upgrade the MCP server:
+       - Check which tool installed `ouroboros-ai` by running these in order:
+         - `uv tool list 2>/dev/null | grep ouroboros` → if found, use `uv tool upgrade ouroboros-ai`
+         - `pipx list 2>/dev/null | grep ouroboros` → if found, use `pipx upgrade ouroboros-ai`
+         - Otherwise, fall back to `pip install --upgrade ouroboros-ai`
+    3. Tell the user: "Updated! Restart Claude Code to apply, then run `ooo interview` again."
   - If "Skip": proceed immediately.
 - If versions match or the check fails (network error, timeout): **silently skip** and proceed.
 
