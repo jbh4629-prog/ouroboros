@@ -30,10 +30,23 @@ curl -s --max-time 3 https://api.github.com/repos/Q00/ouroboros/releases/latest 
 ```
 
 Compare the result with the current version in `.claude-plugin/plugin.json`.
-- If a newer version exists, print a single line before proceeding:
-  `💡 Ouroboros <latest> available (current: <local>). Update: claude plugin install ouroboros@ouroboros`
+- If a newer version exists, ask the user via `AskUserQuestion`:
+  ```json
+  {
+    "questions": [{
+      "question": "Ouroboros <latest> is available (current: <local>). Update before starting?",
+      "header": "Update",
+      "options": [
+        {"label": "Update now", "description": "Run claude plugin install ouroboros@ouroboros to update"},
+        {"label": "Skip, start interview", "description": "Continue with current version"}
+      ],
+      "multiSelect": false
+    }]
+  }
+  ```
+  - If "Update now": run `claude plugin install ouroboros@ouroboros` via Bash, then proceed with the interview.
+  - If "Skip": proceed immediately.
 - If versions match or the check fails (network error, timeout): **silently skip** and proceed.
-- Do NOT ask the user anything about updating. Just inform and move on.
 
 Then choose the execution path:
 
