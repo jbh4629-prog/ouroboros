@@ -103,16 +103,27 @@ fn main() -> std::io::Result<()> {
                         sessions
                             .iter()
                             .map(|s| {
-                                let goal_short = if s.goal.len() > 50 {
-                                    format!("{}...", &s.goal[..47])
-                                } else if s.goal.is_empty() {
-                                    "(no goal)".to_string()
+                                // Show: timestamp | status | short-id | goal
+                                let ts_short: String = s.timestamp.chars().take(16).collect();
+                                let id_short: String = s.aggregate_id.chars().skip(
+                                    s.aggregate_id.len().saturating_sub(8)
+                                ).collect();
+                                let goal_short: String = if s.goal.is_empty() {
+                                    "(no goal)".into()
                                 } else {
-                                    s.goal.clone()
+                                    s.goal.chars().take(40).collect()
+                                };
+                                let status_icon = match s.status.as_str() {
+                                    "done" => "✓",
+                                    "failed" => "✗",
+                                    "running" => "▶",
+                                    "paused" => "⏸",
+                                    "cancelled" => "⊘",
+                                    _ => "?",
                                 };
                                 format!(
-                                    "[{}] {} ({} events)",
-                                    s.status, goal_short, s.event_count
+                                    "{} {} ..{} │ {}",
+                                    status_icon, ts_short, id_short, goal_short
                                 )
                             })
                             .collect::<Vec<_>>(),
@@ -153,12 +164,12 @@ fn main() -> std::io::Result<()> {
 
             if let Some(cmd_idx) = ui.command_palette(&mut state.command_palette) {
                 match cmd_idx {
-                    0 => state.screen = Screen::Dashboard,
-                    1 => state.screen = Screen::Execution,
-                    2 => state.screen = Screen::Logs,
-                    3 => state.screen = Screen::Debug,
-                    4 => state.screen = Screen::Lineage,
-                    5 => state.screen = Screen::SessionSelector,
+                    0 => state.tabs.selected = 0,
+                    1 => state.tabs.selected = 1,
+                    2 => state.tabs.selected = 2,
+                    3 => state.tabs.selected = 3,
+                    4 => state.tabs.selected = 4,
+                    5 => state.tabs.selected = 5,
                     6 => {
                         state.is_paused = true;
                         state.status = ExecutionStatus::Paused;
@@ -273,7 +284,10 @@ fn handle_global_keys(ui: &mut Context, state: &mut AppState) {
         state.tabs.selected = 4;
     }
     if ui.key('s') && !state.command_palette.open && !on_logs {
-        state.screen = Screen::SessionSelector;
+        state.tabs.selected = 5;
+    }
+    if ui.key('6') {
+        state.tabs.selected = 5;
     }
 }
 
@@ -330,7 +344,7 @@ fn render_tab_bar(ui: &mut Context, state: &mut AppState) {
     let accent = ui.theme().accent;
     let dim = ui.theme().text_dim;
     let text = ui.theme().text;
-    let tabs = ["Dashboard", "Execution", "Logs", "Debug", "Lineage"];
+    let tabs = ["Dashboard", "Execution", "Logs", "Debug", "Lineage", "Sessions"];
     ui.container().bg(surface).px(2).py(0).row(|ui| {
         for (i, label) in tabs.iter().enumerate() {
             let active = state.tabs.selected == i;
@@ -350,16 +364,15 @@ fn render_tab_bar(ui: &mut Context, state: &mut AppState) {
         ui.spacer();
     });
 
-    if state.screen != Screen::SessionSelector {
-        state.screen = match state.tabs.selected {
-            0 => Screen::Dashboard,
-            1 => Screen::Execution,
-            2 => Screen::Logs,
-            3 => Screen::Debug,
-            4 => Screen::Lineage,
-            _ => Screen::Dashboard,
-        };
-    }
+    state.screen = match state.tabs.selected {
+        0 => Screen::Dashboard,
+        1 => Screen::Execution,
+        2 => Screen::Logs,
+        3 => Screen::Debug,
+        4 => Screen::Lineage,
+        5 => Screen::SessionSelector,
+        _ => Screen::Dashboard,
+    };
 }
 
 fn render_footer(ui: &mut Context) {

@@ -11,9 +11,8 @@ pub fn render(ui: &mut Context, state: &mut AppState) -> Option<usize> {
     let secondary = ui.theme().secondary;
     let accent = ui.theme().accent;
 
-    // Esc returns to previous screen
+    // Esc returns to Dashboard
     if ui.key_code(KeyCode::Esc) {
-        state.screen = Screen::Dashboard;
         state.tabs.selected = 0;
     }
 
@@ -59,13 +58,11 @@ pub fn render(ui: &mut Context, state: &mut AppState) -> Option<usize> {
             let sel = state.session_list.selected;
             if let Some(session) = state.sessions.get(sel) {
                 ui.container().bg(surface_hover).px(3).py(0).row(|ui| {
-                    ui.text("Type ").fg(dim);
-                    ui.text(&session.aggregate_type).fg(secondary);
-                    ui.text("    ID ").fg(dim);
+                    ui.text("ID ").fg(dim);
                     ui.text(&session.aggregate_id).fg(accent);
-                    ui.text(format!("    {} events", session.event_count))
-                        .fg(dim);
-                    ui.text(format!("    since {}", session.first_ts)).fg(dim);
+                    ui.text(format!("  {} events", session.event_count))
+                        .fg(secondary);
+                    ui.text(format!("  since {}", session.first_ts)).fg(dim);
                 });
             }
         }
