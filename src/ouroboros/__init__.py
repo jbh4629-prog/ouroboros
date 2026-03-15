@@ -13,7 +13,7 @@ Example:
     from ouroboros.bigbang import InterviewEngine
 """
 
-__version__ = "0.23.2"
+__version__ = "0.24.0"
 
 __all__ = ["__version__", "main"]
 
