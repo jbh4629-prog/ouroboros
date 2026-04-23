@@ -70,6 +70,33 @@ curl -fsSL https://raw.githubusercontent.com/Q00/ouroboros/main/scripts/install.
 
 > Works with Claude Code, Codex CLI, Hermes, and OpenCode. The installer detects Claude Code, Codex CLI, and Hermes CLI automatically and registers the MCP server. For OpenCode, run `ouroboros setup --runtime opencode` after installation.
 
+### Codespaces + Codex CLI (ChatGPT sign-in)
+
+If you open this repository in GitHub Codespaces, the bundled devcontainer bootstrap will:
+
+- set `UV_LINK_MODE=copy` for Codespaces-friendly installs
+- run `uv sync --all-extras`
+- install `@openai/codex` if it is missing
+- run `ouroboros setup --runtime codex`
+
+First run only, open a terminal and start Codex once:
+
+```bash
+codex
+```
+
+Then choose **Sign in with ChatGPT**. After that, start Ouroboros normally:
+
+```bash
+uv run ouroboros init start --llm-backend codex "Build a REST API"
+```
+
+If you want a repo-local launcher that auto-installs Codex when missing, use:
+
+```bash
+./scripts/codex-auto.sh
+```
+
 <details>
 <summary><strong>Other install methods</strong></summary>
 
