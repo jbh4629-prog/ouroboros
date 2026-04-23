@@ -1,0 +1,16 @@
+{
+  "name": "ouroboros-codex",
+  "postCreateCommand": "bash .devcontainer/postCreate.sh",
+  "containerEnv": {
+    "UV_LINK_MODE": "copy",
+    "OUROBOROS_AGENT_RUNTIME": "codex",
+    "OUROBOROS_LLM_BACKEND": "codex"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}
