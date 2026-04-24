@@ -12,6 +12,7 @@ DEFAULT_MAX_OUROBOROS_DEPTH = 5
 DEFAULT_CODEX_CHILD_ENV_KEYS = ("OUROBOROS_AGENT_RUNTIME", "OUROBOROS_LLM_BACKEND")
 DEFAULT_CODEX_CHILD_SESSION_ENV_KEYS = ("CODEX_THREAD_ID",)
 CODEX_AUTH_MODE_ENV = "OUROBOROS_CODEX_AUTH_MODE"
+CODEX_AUTH_MODE_API = "api"
 CODEX_AUTH_MODE_CHATGPT = "chatgpt"
 _CODEX_API_AUTH_ENV_KEYS = (
     "OPENAI_API_KEY",
@@ -118,9 +119,23 @@ def find_real_cli(*, default_cli_name: str = DEFAULT_CODEX_CLI_NAME, skip: str) 
     return None
 
 
+def _runs_in_codespaces(env: Mapping[str, str]) -> bool:
+    """Return True when running inside GitHub Codespaces."""
+    return env.get("CODESPACES", "").strip().lower() == "true" or bool(
+        env.get("CODESPACE_NAME", "").strip()
+    )
+
+
 def _uses_chatgpt_auth_mode(env: Mapping[str, str]) -> bool:
     """Return True when Codex child processes should prefer ChatGPT auth."""
-    return env.get(CODEX_AUTH_MODE_ENV, "").strip().lower() == CODEX_AUTH_MODE_CHATGPT
+    configured = env.get(CODEX_AUTH_MODE_ENV, "").strip().lower()
+    if configured:
+        return configured == CODEX_AUTH_MODE_CHATGPT
+
+    # Codespaces users are expected to authenticate Codex with the interactive
+    # "Sign in with ChatGPT" flow. Default to that behavior there so child
+    # Codex processes do not accidentally prefer inherited OPENAI_* API env.
+    return _runs_in_codespaces(env)
 
 
 def build_codex_child_env(
@@ -143,10 +158,12 @@ def build_codex_child_env(
     # In Codespaces and other developer containers, users often authenticate
     # Codex with "Sign in with ChatGPT" while unrelated OPENAI_* variables are
     # present in the shell. Codex CLI gives those API-style env vars precedence,
-    # which can produce 401s even though the local ChatGPT login is valid. Make
-    # this opt-in via OUROBOROS_CODEX_AUTH_MODE=chatgpt so local API-key users
-    # keep the old behavior.
+    # which can produce 401s even though the local ChatGPT login is valid.
+    #
+    # Default to ChatGPT auth in Codespaces. Outside Codespaces, preserve API-key
+    # behavior unless users explicitly set OUROBOROS_CODEX_AUTH_MODE=chatgpt.
     if _uses_chatgpt_auth_mode(env):
+        env[CODEX_AUTH_MODE_ENV] = CODEX_AUTH_MODE_CHATGPT
         for key in _CODEX_API_AUTH_ENV_KEYS:
             env.pop(key, None)
 
@@ -174,6 +191,7 @@ def _which(name: str) -> str | None:
 
 
 __all__ = [
+    "CODEX_AUTH_MODE_API",
     "CODEX_AUTH_MODE_CHATGPT",
     "CODEX_AUTH_MODE_ENV",
     "CodexCliResolution",
