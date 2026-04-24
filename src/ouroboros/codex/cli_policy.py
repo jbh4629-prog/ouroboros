@@ -11,6 +11,15 @@ DEFAULT_CODEX_CLI_NAME = "codex"
 DEFAULT_MAX_OUROBOROS_DEPTH = 5
 DEFAULT_CODEX_CHILD_ENV_KEYS = ("OUROBOROS_AGENT_RUNTIME", "OUROBOROS_LLM_BACKEND")
 DEFAULT_CODEX_CHILD_SESSION_ENV_KEYS = ("CODEX_THREAD_ID",)
+CODEX_AUTH_MODE_ENV = "OUROBOROS_CODEX_AUTH_MODE"
+CODEX_AUTH_MODE_CHATGPT = "chatgpt"
+_CODEX_API_AUTH_ENV_KEYS = (
+    "OPENAI_API_KEY",
+    "OPENAI_BASE_URL",
+    "OPENAI_ORG_ID",
+    "OPENAI_ORGANIZATION",
+    "OPENAI_PROJECT",
+)
 _WRAPPER_MAGIC_HEADERS = (
     b"\xcf\xfa\xed\xfe",  # Mach-O 64-bit
     b"\xce\xfa\xed\xfe",  # Mach-O 32-bit
@@ -109,6 +118,11 @@ def find_real_cli(*, default_cli_name: str = DEFAULT_CODEX_CLI_NAME, skip: str) 
     return None
 
 
+def _uses_chatgpt_auth_mode(env: Mapping[str, str]) -> bool:
+    """Return True when Codex child processes should prefer ChatGPT auth."""
+    return env.get(CODEX_AUTH_MODE_ENV, "").strip().lower() == CODEX_AUTH_MODE_CHATGPT
+
+
 def build_codex_child_env(
     *,
     base_env: Mapping[str, str] | None = None,
@@ -125,6 +139,16 @@ def build_codex_child_env(
     # Strip CLAUDECODE so child codex does not detect the parent Codex/Claude
     # session and hang or refuse to start.
     env.pop("CLAUDECODE", None)
+
+    # In Codespaces and other developer containers, users often authenticate
+    # Codex with "Sign in with ChatGPT" while unrelated OPENAI_* variables are
+    # present in the shell. Codex CLI gives those API-style env vars precedence,
+    # which can produce 401s even though the local ChatGPT login is valid. Make
+    # this opt-in via OUROBOROS_CODEX_AUTH_MODE=chatgpt so local API-key users
+    # keep the old behavior.
+    if _uses_chatgpt_auth_mode(env):
+        for key in _CODEX_API_AUTH_ENV_KEYS:
+            env.pop(key, None)
 
     try:
         depth = int(env.get("_OUROBOROS_DEPTH", "0")) + 1
@@ -150,6 +174,8 @@ def _which(name: str) -> str | None:
 
 
 __all__ = [
+    "CODEX_AUTH_MODE_CHATGPT",
+    "CODEX_AUTH_MODE_ENV",
     "CodexCliResolution",
     "DEFAULT_CODEX_CHILD_ENV_KEYS",
     "DEFAULT_CODEX_CHILD_SESSION_ENV_KEYS",
